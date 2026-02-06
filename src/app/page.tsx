@@ -30,7 +30,7 @@ export default function DashboardPage() {
   const { accountId, adminToken, logout } = useAuth()
 
   const fetchMetric = async (resource: string) => {
-    const res = await fetch(`https://api.keygen.sh/v1/accounts/${accountId}/${resource}?page[size]=1`, {
+    const res = await fetch(`https://api.keygen.sh/v1/accounts/${accountId}/${resource}?page[size]=1&page[number]=1`, {
       headers: {
         'Authorization': `Bearer ${adminToken}`,
         'Accept': 'application/vnd.api+json',
