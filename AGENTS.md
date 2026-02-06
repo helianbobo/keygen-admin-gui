@@ -27,3 +27,4 @@ A sleek, professional, and high-performance administrative dashboard for managin
 - Use atomic commits with clear messages.
 - Implement error handling for API calls (especially 401/403/429).
 - **No Soulless Code**: Every component should be documented and follow the "Clean Code" principles.
+- **Read `keygen.sh-llms.txt`**: Refer to this file for comprehensive API documentation, including available endpoints, request/response formats, and integration patterns.
