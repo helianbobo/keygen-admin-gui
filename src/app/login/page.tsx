@@ -83,7 +83,8 @@ export default function LoginPage() {
         login(values.accountId, values.adminToken, cleanBaseUrl)
       } else {
         const error = await response.json().catch(() => ({}))
-        const message = error.errors?.[0]?.detail || 'Invalid Account ID or Admin Token'
+        const firstError = error.errors?.[0]
+        const message = firstError?.detail || firstError?.title || 'Invalid Account ID or Admin Token'
         toast.error(message)
       }
     } catch (err) {
@@ -114,7 +115,7 @@ export default function LoginPage() {
 
       if (response.ok) {
         const data = await response.json()
-        const token = data.attributes?.token
+        const token = data.data?.attributes?.token || data.attributes?.token
         
         if (token) {
           toast.success('Successfully authenticated')
@@ -124,7 +125,8 @@ export default function LoginPage() {
         }
       } else {
         const error = await response.json().catch(() => ({}))
-        const message = error.errors?.[0]?.detail || 'Invalid credentials'
+        const firstError = error.errors?.[0]
+        const message = firstError?.detail || firstError?.title || 'Invalid credentials'
         toast.error(message)
       }
     } catch (err) {
