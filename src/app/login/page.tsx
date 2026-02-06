@@ -22,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 const loginSchema = z.object({
   accountId: z.string().min(1, 'Account ID is required'),
   adminToken: z.string().min(1, 'Admin Token is required'),
+  baseUrl: z.string().url('Must be a valid URL'),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -35,15 +36,19 @@ export default function LoginPage() {
     defaultValues: {
       accountId: '',
       adminToken: '',
+      baseUrl: 'https://api.keygen.sh/v1',
     },
   })
 
   async function onSubmit(values: LoginFormValues) {
     setIsLoading(true)
     try {
+      // Clean base URL (remove trailing slash)
+      const cleanBaseUrl = values.baseUrl.replace(/\/$/, '')
+      
       // Validate against Keygen API
       // We'll try to fetch tokens as a simple validation step
-      const response = await fetch(`https://api.keygen.sh/v1/accounts/${values.accountId}/tokens`, {
+      const response = await fetch(`${cleanBaseUrl}/accounts/${values.accountId}/tokens`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${values.adminToken}`,
@@ -53,7 +58,7 @@ export default function LoginPage() {
 
       if (response.ok) {
         toast.success('Successfully authenticated')
-        login(values.accountId, values.adminToken)
+        login(values.accountId, values.adminToken, cleanBaseUrl)
       } else {
         const error = await response.json().catch(() => ({}))
         const message = error.errors?.[0]?.detail || 'Invalid Account ID or Admin Token'
@@ -104,6 +109,19 @@ export default function LoginPage() {
                     <FormLabel>Admin Token</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="prod-..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="baseUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>API Base URL (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://api.keygen.sh/v1" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
