@@ -15,8 +15,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 interface KeygenResponse {
-  meta: {
-    total: number
+  meta?: {
+    count?: number
+    total?: number
+  }
+  links?: {
+    meta?: {
+      count?: number
+    }
   }
 }
 
@@ -32,7 +38,9 @@ export default function DashboardPage() {
     })
     if (!res.ok) throw new Error(`Failed to fetch ${resource}`)
     const data: KeygenResponse = await res.json()
-    return data.meta.total
+    
+    // Keygen API provides the total count in meta.count or links.meta.count
+    return data.meta?.count ?? data.meta?.total ?? data.links?.meta?.count ?? 0
   }
 
   const { data: licenses, isLoading: loadingLicenses } = useQuery({
