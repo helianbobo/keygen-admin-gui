@@ -12,7 +12,7 @@ A sleek, professional, and high-performance administrative dashboard for managin
 - **Framework**: Next.js (App Router) with TypeScript.
 - **Styling**: Tailwind CSS + Shadcn UI components.
 - **State Management**: React Query for API data fetching and caching.
-- **API Integration**: Communicate with `https://api.keygen.sh/v1` using the Admin Token provided during login.
+- **API Integration**: Communicate with the Keygen API (default: `https://api.keygen.sh/v1`, configurable at login) using the Admin Token provided.
 - **Authentication**: A secure login page that accepts an Account ID and Admin Token (persisted in session/local storage for the session duration).
 
 ## Core Dashboard Metrics

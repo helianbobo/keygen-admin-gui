@@ -27,10 +27,10 @@ interface KeygenResponse {
 }
 
 export default function DashboardPage() {
-  const { accountId, adminToken, logout } = useAuth()
+  const { accountId, adminToken, baseUrl, logout } = useAuth()
 
   const fetchMetric = async (resource: string) => {
-    const res = await fetch(`https://api.keygen.sh/v1/accounts/${accountId}/${resource}?page[size]=1&page[number]=1`, {
+    const res = await fetch(`${baseUrl}/accounts/${accountId}/${resource}?page[size]=1&page[number]=1`, {
       headers: {
         'Authorization': `Bearer ${adminToken}`,
         'Accept': 'application/vnd.api+json',
@@ -44,25 +44,25 @@ export default function DashboardPage() {
   }
 
   const { data: licenses, isLoading: loadingLicenses } = useQuery({
-    queryKey: ['licenses', accountId],
+    queryKey: ['licenses', accountId, baseUrl],
     queryFn: () => fetchMetric('licenses'),
     enabled: !!accountId && !!adminToken,
   })
 
   const { data: machines, isLoading: loadingMachines } = useQuery({
-    queryKey: ['machines', accountId],
+    queryKey: ['machines', accountId, baseUrl],
     queryFn: () => fetchMetric('machines'),
     enabled: !!accountId && !!adminToken,
   })
 
   const { data: users, isLoading: loadingUsers } = useQuery({
-    queryKey: ['users', accountId],
+    queryKey: ['users', accountId, baseUrl],
     queryFn: () => fetchMetric('users'),
     enabled: !!accountId && !!adminToken,
   })
 
   const { data: products, isLoading: loadingProducts } = useQuery({
-    queryKey: ['products', accountId],
+    queryKey: ['products', accountId, baseUrl],
     queryFn: () => fetchMetric('products'),
     enabled: !!accountId && !!adminToken,
   })
@@ -107,9 +107,12 @@ export default function DashboardPage() {
             <span>Keygen Admin</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden md:inline-block">
-              Account: <span className="font-medium text-foreground">{accountId}</span>
-            </span>
+            <div className="text-right hidden sm:block">
+              <div className="text-sm font-medium">Account: {accountId}</div>
+              <div className="text-[10px] text-muted-foreground truncate max-w-[200px]">
+                {baseUrl}
+              </div>
+            </div>
             <Button variant="ghost" size="icon" onClick={logout} title="Logout">
               <LogOut className="h-5 w-5" />
             </Button>
