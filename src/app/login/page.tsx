@@ -22,7 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 const loginSchema = z.object({
   accountId: z.string().min(1, 'Account ID is required'),
   adminToken: z.string().min(1, 'Admin Token is required'),
-  baseUrl: z.string().url('Must be a valid URL').default('https://api.keygen.sh/v1'),
+  baseUrl: z.string().url('Must be a valid URL'),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
