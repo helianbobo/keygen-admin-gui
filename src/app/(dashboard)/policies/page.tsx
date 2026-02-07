@@ -248,22 +248,7 @@ export default function PoliciesPage() {
 
   // Delete policy mutation
   const deletePolicy = useMutation({
-    mutationFn: async (policyId: string) => {
-      const response = await fetch(
-        `${baseUrl}/accounts/${accountId}/policies/${policyId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${adminToken}`,
-            Accept: 'application/vnd.api+json',
-          },
-        }
-      )
-      if (!response.ok && response.status !== 204) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.errors?.[0]?.detail || `Error: ${response.status}`)
-      }
-    },
+    mutationFn: (policyId: string) => deleteResource('policies', policyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['policies'] })
       setPolicyToDelete(null)
