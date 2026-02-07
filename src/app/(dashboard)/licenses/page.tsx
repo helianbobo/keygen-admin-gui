@@ -34,7 +34,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Plus, Key, RefreshCw, Copy, Check, Eye } from 'lucide-react'
+import { Plus, Key, RefreshCw, Copy, Check, Eye, Trash2 } from 'lucide-react'
+import { LicenseDeleteDialog } from '@/components/licenses/LicenseDeleteDialog'
 
 // Types for Keygen API responses
 interface Policy {
@@ -148,6 +149,17 @@ export default function LicensesPage() {
   const [createdLicenseKey, setCreatedLicenseKey] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean
+    licenseId: string
+    licenseKey: string
+    userName: string
+  }>({
+    isOpen: false,
+    licenseId: '',
+    licenseKey: '',
+    userName: '',
+  })
 
   // Form state
   const [formData, setFormData] = useState({
@@ -677,16 +689,34 @@ export default function LicensesPage() {
                       {getUserName(license.relationships?.user?.data?.id)}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          router.push(`/licenses/${license.id}`)
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/licenses/${license.id}`)
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteDialog({
+                              isOpen: true,
+                              licenseId: license.id,
+                              licenseKey: license.attributes.key,
+                              userName: getUserName(license.relationships?.user?.data?.id),
+                            })
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )
@@ -695,6 +725,14 @@ export default function LicensesPage() {
           </Table>
         </div>
       )}
+      {/* License Delete Dialog */}
+      <LicenseDeleteDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog((prev) => ({ ...prev, isOpen: false }))}
+        licenseId={deleteDialog.licenseId}
+        licenseKey={deleteDialog.licenseKey}
+        userName={deleteDialog.userName}
+      />
     </div>
   )
 }

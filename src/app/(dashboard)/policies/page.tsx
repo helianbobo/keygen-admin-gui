@@ -44,6 +44,8 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Plus, Trash2, ShieldCheck, RefreshCw } from 'lucide-react'
+import { deleteResource } from '@/lib/api'
+import { PolicyDeleteDialog } from '@/components/policies/PolicyDeleteDialog'
 
 // Types for Keygen API responses
 interface Product {
@@ -248,22 +250,7 @@ export default function PoliciesPage() {
 
   // Delete policy mutation
   const deletePolicy = useMutation({
-    mutationFn: async (policyId: string) => {
-      const response = await fetch(
-        `${baseUrl}/accounts/${accountId}/policies/${policyId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${adminToken}`,
-            Accept: 'application/vnd.api+json',
-          },
-        }
-      )
-      if (!response.ok && response.status !== 204) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.errors?.[0]?.detail || `Error: ${response.status}`)
-      }
-    },
+    mutationFn: (policyId: string) => deleteResource('policies', policyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['policies'] })
       setPolicyToDelete(null)
@@ -578,30 +565,13 @@ export default function PoliciesPage() {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!policyToDelete}
-        onOpenChange={() => setPolicyToDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Policy</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete &ldquo;{policyToDelete?.attributes.name}&rdquo;?
-              This will also delete all associated licenses.
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => policyToDelete && deletePolicy.mutate(policyToDelete.id)}
-            >
-              {deletePolicy.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PolicyDeleteDialog
+        policy={policyToDelete}
+        isOpen={!!policyToDelete}
+        onClose={() => setPolicyToDelete(null)}
+        onConfirm={() => policyToDelete && deletePolicy.mutate(policyToDelete.id)}
+        isLoading={deletePolicy.isPending}
+      />
     </div>
   )
 }

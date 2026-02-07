@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,16 +26,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -44,6 +34,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Plus, Trash2, Package, RefreshCw } from 'lucide-react'
+import { ProductDeleteDialog } from '@/components/products/ProductDeleteDialog'
 
 // Types for Keygen API responses
 interface Product {
@@ -169,33 +160,12 @@ export default function ProductsPage() {
     },
   })
 
-  // Delete product mutation
-  const deleteProduct = useMutation({
-    mutationFn: async (productId: string) => {
-      const response = await fetch(
-        `${baseUrl}/accounts/${accountId}/products/${productId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${adminToken}`,
-            Accept: 'application/vnd.api+json',
-          },
-        }
-      )
-      if (!response.ok && response.status !== 204) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.errors?.[0]?.detail || `Error: ${response.status}`)
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] })
-      setProductToDelete(null)
-      toast.success('Product deleted successfully')
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to delete product: ${error.message}`)
-    },
-  })
+  // Handle successful product deletion
+  const handleProductDeleted = () => {
+    queryClient.invalidateQueries({ queryKey: ['products'] })
+    setProductToDelete(null)
+    toast.success('Product deleted successfully')
+  }
 
   const resetForm = () => {
     setFormData({
