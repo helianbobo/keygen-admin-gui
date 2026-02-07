@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { RefreshCw, Monitor, Eye } from 'lucide-react'
+import { RefreshCw, Monitor, Eye, Trash2 } from 'lucide-react'
+import { MachineDeleteDialog } from '@/components/machines/MachineDeleteDialog'
 
 // Types for Keygen API responses
 interface License {
@@ -131,6 +132,11 @@ export default function MachinesPage() {
   const [page, setPage] = useState(1)
   const [pageSize] = useState(25)
   const [platformFilter, setPlatformFilter] = useState<string>('ALL')
+  const [deleteMachine, setDeleteMachine] = useState<{
+    id: string
+    fingerprint: string
+    licenseKey?: string
+  } | null>(null)
 
   // Fetch machines
   const {
@@ -343,16 +349,35 @@ export default function MachinesPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            router.push(`/machines/${machine.id}`)
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              router.push(`/machines/${machine.id}`)
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const licenseId = machine.relationships?.license?.data?.id
+                              const licenseKey = licenseId ? licenseMap.get(licenseId) : undefined
+                              setDeleteMachine({
+                                id: machine.id,
+                                fingerprint: machine.attributes.fingerprint,
+                                licenseKey
+                              })
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
@@ -389,6 +414,15 @@ export default function MachinesPage() {
           )}
         </>
       )}
+
+      {/* Delete Dialog */}
+      <MachineDeleteDialog
+        isOpen={!!deleteMachine}
+        onClose={() => setDeleteMachine(null)}
+        machineId={deleteMachine?.id || ''}
+        fingerprint={deleteMachine?.fingerprint || ''}
+        licenseKey={deleteMachine?.licenseKey}
+      />
     </div>
   )
 }
