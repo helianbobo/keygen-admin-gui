@@ -359,8 +359,11 @@ export async function fetchResources<T = any>(
 
   const params: Record<string, string> = {};
 
-  if (options?.page) {
-    params['page[number]'] = options.page.toString();
+  // Ensure page number defaults to 1 if pagination is being used
+  // This prevents API errors where page 0 is invalid
+  if (options?.page !== undefined || options?.limit !== undefined) {
+    const pageNumber = options?.page ?? 1;
+    params['page[number]'] = pageNumber.toString();
   }
   if (options?.limit) {
     params['page[size]'] = options.limit.toString();

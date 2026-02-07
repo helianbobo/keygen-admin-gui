@@ -64,7 +64,7 @@ export function ProductDeleteDialog({
       try {
         // Fetch policies count for this product
         const policiesResponse = await fetch(
-          `${baseUrl}/accounts/${accountId}/policies?filter[product]=${product.id}&page[size]=1`,
+          `${baseUrl}/accounts/${accountId}/policies?filter[product]=${product.id}&page[size]=1&page[number]=1`,
           {
             headers: {
               Authorization: `Bearer ${adminToken}`,
@@ -75,7 +75,7 @@ export function ProductDeleteDialog({
 
         // Fetch licenses count for this product
         const licensesResponse = await fetch(
-          `${baseUrl}/accounts/${accountId}/licenses?filter[product]=${product.id}&page[size]=1`,
+          `${baseUrl}/accounts/${accountId}/licenses?filter[product]=${product.id}&page[size]=1&page[number]=1`,
           {
             headers: {
               Authorization: `Bearer ${adminToken}`,

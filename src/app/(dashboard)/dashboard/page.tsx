@@ -151,7 +151,7 @@ export default function DashboardPage() {
     queryKey: ['recent-licenses', accountId, baseUrl],
     queryFn: async () => {
       const res = await fetch(
-        `${baseUrl}/accounts/${accountId}/licenses?page[size]=5&sort=-created&include=policy`,
+        `${baseUrl}/accounts/${accountId}/licenses?page[size]=5&page[number]=1&sort=-created&include=policy`,
         {
           headers: {
             'Authorization': `Bearer ${adminToken}`,
