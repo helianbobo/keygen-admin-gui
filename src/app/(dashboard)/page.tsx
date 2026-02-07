@@ -6,13 +6,10 @@ import {
   Key, 
   Monitor, 
   Package,
-  Loader2,
-  LogOut,
-  ShieldCheck
+  Loader2
 } from 'lucide-react'
 import { useAuth } from '@/components/auth-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 
 interface KeygenResponse {
   meta?: {
@@ -99,67 +96,45 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b bg-white">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2 font-bold text-xl">
-            <ShieldCheck className="h-6 w-6 text-primary" />
-            <span>Keygen Admin</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <div className="text-sm font-medium">Account: {accountId}</div>
-              <div className="text-[10px] text-muted-foreground truncate max-w-[200px]">
-                {baseUrl}
-              </div>
-            </div>
-            <Button variant="ghost" size="icon" onClick={logout} title="Logout">
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">Overview of your licensing system.</p>
+      </div>
 
-      <main className="container mx-auto p-4 md:p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of your licensing system.</p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {metrics.map((metric) => (
-            <Card key={metric.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {metric.title}
-                </CardTitle>
-                <metric.icon className={`h-4 w-4 ${metric.color}`} />
-              </CardHeader>
-              <CardContent>
-                {metric.loading ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                ) : (
-                  <div className="text-2xl font-bold">{metric.value?.toLocaleString() ?? 0}</div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Welcome to Keygen Admin GUI</CardTitle>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {metrics.map((metric) => (
+          <Card key={metric.title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {metric.title}
+              </CardTitle>
+              <metric.icon className={`h-4 w-4 ${metric.color}`} />
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                This dashboard provides a real-time overview of your Keygen resources. 
-                Use the metrics above to track your system's health and usage.
-              </p>
+              {metric.loading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              ) : (
+                <div className="text-2xl font-bold">{metric.value?.toLocaleString() ?? 0}</div>
+              )}
             </CardContent>
           </Card>
-        </div>
-      </main>
+        ))}
+      </div>
+
+      <div className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Welcome to Keygen Admin GUI</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              This dashboard provides a real-time overview of your Keygen resources. 
+              Use the sidebar to navigate through your products, policies, and licenses.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
