@@ -3,7 +3,7 @@
  * Minimalist fetch wrapper following AGENTS.md vibe.
  */
 
-const BASE_URL = 'https://api.keygen.sh/v1';
+export const BASE_URL = 'https://api.keygen.sh/v1';
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string>;
