@@ -26,16 +26,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -44,6 +34,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Plus, Trash2, Package, RefreshCw } from 'lucide-react'
+import { ProductDeleteDialog } from '@/components/products/ProductDeleteDialog'
 
 // Types for Keygen API responses
 interface Product {
@@ -169,33 +160,12 @@ export default function ProductsPage() {
     },
   })
 
-  // Delete product mutation
-  const deleteProduct = useMutation({
-    mutationFn: async (productId: string) => {
-      const response = await fetch(
-        `${baseUrl}/accounts/${accountId}/products/${productId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${adminToken}`,
-            Accept: 'application/vnd.api+json',
-          },
-        }
-      )
-      if (!response.ok && response.status !== 204) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.errors?.[0]?.detail || `Error: ${response.status}`)
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] })
-      setProductToDelete(null)
-      toast.success('Product deleted successfully')
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to delete product: ${error.message}`)
-    },
-  })
+  // Handle successful product deletion
+  const handleProductDeleted = () => {
+    queryClient.invalidateQueries({ queryKey: ['products'] })
+    setProductToDelete(null)
+    toast.success('Product deleted successfully')
+  }
 
   const resetForm = () => {
     setFormData({
@@ -471,31 +441,13 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!productToDelete}
-        onOpenChange={() => setProductToDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Product</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete &ldquo;{productToDelete?.attributes.name}&rdquo;?
-              This will also delete all associated policies, licenses, and machines.
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => productToDelete && deleteProduct.mutate(productToDelete.id)}
-            >
-              {deleteProduct.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete Confirmation Dialog with Dependency Check */}
+      <ProductDeleteDialog
+        product={productToDelete}
+        isOpen={!!productToDelete}
+        onClose={() => setProductToDelete(null)}
+        onDeleted={handleProductDeleted}
+      />
     </div>
   )
 }

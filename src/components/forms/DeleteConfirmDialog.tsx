@@ -1,3 +1,4 @@
+import { ReactNode } from "react"
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ interface DeleteConfirmDialogProps {
   onClose: () => void
   onConfirm: () => void
   title?: string
-  description?: string
+  description?: ReactNode
   itemName?: string
   isLoading?: boolean
 }
@@ -33,18 +34,20 @@ export function DeleteConfirmDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {description || (
-              <>
-                Are you sure you want to delete{" "}
-                {itemName ? (
-                  <span className="font-semibold text-foreground">{itemName}</span>
-                ) : (
-                  "this item"
-                )}
-                ? This action cannot be undone.
-              </>
-            )}
+          <DialogDescription asChild>
+            <div className="py-2">
+              {description || (
+                <>
+                  Are you sure you want to delete{" "}
+                  {itemName ? (
+                    <span className="font-semibold text-foreground">{itemName}</span>
+                  ) : (
+                    "this item"
+                  )}
+                  ? This action cannot be undone.
+                </>
+              )}
+            </div>
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
