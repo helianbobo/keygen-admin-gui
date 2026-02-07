@@ -18,6 +18,25 @@ import {
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/auth-provider'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
+function truncateAccountId(accountId: string): string {
+  if (accountId.length <= 14) return accountId
+  return `${accountId.slice(0, 8)}...${accountId.slice(-6)}`
+}
+
+function extractHostname(url: string): string {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return url
+  }
+}
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -35,7 +54,7 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
-  const { logout } = useAuth()
+  const { logout, accountId, baseUrl } = useAuth()
 
   const currentPage = navigation.find((item) => pathname.startsWith(item.href))?.name || 'Dashboard'
 
@@ -93,7 +112,31 @@ export default function DashboardLayout({
           </nav>
 
           {/* Footer / User area */}
-          <div className="p-4 border-t">
+          <div className="p-4 border-t space-y-3">
+            {/* Account Info */}
+            {accountId && (
+              <TooltipProvider>
+                <div className="px-3 py-2 rounded-md bg-accent/50">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-sm font-mono text-foreground cursor-default">
+                          {truncateAccountId(accountId)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="font-mono">{accountId}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">
+                    {extractHostname(baseUrl)}
+                  </p>
+                </div>
+              </TooltipProvider>
+            )}
+
             <Button 
               variant="ghost" 
               className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
