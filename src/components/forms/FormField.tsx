@@ -21,7 +21,7 @@ export interface FormFieldProps<TFieldValues extends FieldValues> {
   name: FieldPath<TFieldValues>
   label: string
   placeholder?: string
-  type?: "text" | "email" | "number" | "select" | "textarea"
+  type?: "text" | "email" | "number" | "select" | "textarea" | "datetime-local"
   options?: { label: string; value: string }[]
   disabled?: boolean
 }

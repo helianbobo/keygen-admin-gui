@@ -17,6 +17,7 @@ interface DeleteConfirmDialogProps {
   description?: string
   itemName?: string
   isLoading?: boolean
+  confirmDisabled?: boolean
 }
 
 export function DeleteConfirmDialog({
@@ -27,24 +28,27 @@ export function DeleteConfirmDialog({
   description,
   itemName,
   isLoading = false,
+  confirmDisabled = false,
 }: DeleteConfirmDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {description || (
-              <>
-                Are you sure you want to delete{" "}
-                {itemName ? (
-                  <span className="font-semibold text-foreground">{itemName}</span>
-                ) : (
-                  "this item"
-                )}
-                ? This action cannot be undone.
-              </>
-            )}
+          <DialogDescription asChild>
+            <div className="py-2">
+              {description || (
+                <>
+                  Are you sure you want to delete{" "}
+                  {itemName ? (
+                    <span className="font-semibold text-foreground">{itemName}</span>
+                  ) : (
+                    "this item"
+                  )}
+                  ? This action cannot be undone.
+                </>
+              )}
+            </div>
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -60,7 +64,7 @@ export function DeleteConfirmDialog({
             type="button"
             variant="destructive"
             onClick={onConfirm}
-            disabled={isLoading}
+            disabled={isLoading || confirmDisabled}
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Delete
