@@ -43,9 +43,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Plus, Trash2, ShieldCheck, RefreshCw } from 'lucide-react'
+import { Plus, Trash2, ShieldCheck, RefreshCw, Search, X } from 'lucide-react'
 import { deleteResource } from '@/lib/api'
 import { PolicyDeleteDialog } from '@/components/policies/PolicyDeleteDialog'
+import { useListFilter } from '@/hooks/useListFilter'
 
 // Types for Keygen API responses
 interface Product {
@@ -135,6 +136,12 @@ export default function PoliciesPage() {
   const queryClient = useQueryClient()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [policyToDelete, setPolicyToDelete] = useState<Policy | null>(null)
+
+  // Search and filter
+  const { filters, setFilter, resetFilters } = useListFilter({
+    defaultFilters: { pageSize: 25 },
+    syncToUrl: true,
+  })
 
   // Form state
   const [formData, setFormData] = useState({
@@ -295,6 +302,25 @@ export default function PoliciesPage() {
   }
 
   const policies = policiesData?.data || []
+
+  // Filter policies by search and product
+  const filteredPolicies = policies.filter((policy) => {
+    // Search by name
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
+      if (!policy.attributes.name.toLowerCase().includes(searchLower)) {
+        return false
+      }
+    }
+    // Filter by product
+    if (filters.status && filters.status !== 'ALL') {
+      const policyProductId = policy.relationships?.product?.data?.id
+      if (policyProductId !== filters.status) {
+        return false
+      }
+    }
+    return true
+  })
   const products = productsData?.data || []
 
   return (
@@ -307,7 +333,40 @@ export default function PoliciesPage() {
             Define licensing rules and constraints for your products.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search policies..."
+              value={filters.search}
+              onChange={(e) => setFilter('search', e.target.value)}
+              className="pl-9 w-[200px]"
+            />
+          </div>
+          {/* Product Filter */}
+          <Select
+            value={filters.status || 'ALL'}
+            onValueChange={(value) => setFilter('status', value === 'ALL' ? '' : value)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by product" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Products</SelectItem>
+              {products.map((product) => (
+                <SelectItem key={product.id} value={product.id}>
+                  {product.attributes.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Clear Filters */}
+          {(filters.search || filters.status) && (
+            <Button variant="ghost" size="icon" onClick={resetFilters}>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -497,22 +556,27 @@ export default function PoliciesPage() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !error && policies.length === 0 && products.length > 0 && (
+      {!isLoading && !error && filteredPolicies.length === 0 && products.length > 0 && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
           <ShieldCheck className="h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">No policies yet</h3>
+          <h3 className="mt-4 text-lg font-semibold">
+            {filters.search || filters.status ? 'No policies found' : 'No policies yet'}
+          </h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Create your first policy to define licensing rules.
+            {filters.search || filters.status
+              ? 'No policies match your filters.'
+              : 'Create your first policy to define licensing rules.'}
           </p>
-          <Button className="mt-4" onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Policy
-          </Button>
+          {(filters.search || filters.status) && (
+            <Button variant="link" onClick={resetFilters} className="mt-2">
+              Clear filters
+            </Button>
+          )}
         </div>
       )}
 
       {/* Policies Table */}
-      {!isLoading && !error && policies.length > 0 && (
+      {!isLoading && !error && filteredPolicies.length > 0 && (
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
@@ -525,7 +589,7 @@ export default function PoliciesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {policies.map((policy) => (
+              {filteredPolicies.map((policy) => (
                 <TableRow key={policy.id}>
                   <TableCell className="font-medium">
                     {policy.attributes.name}

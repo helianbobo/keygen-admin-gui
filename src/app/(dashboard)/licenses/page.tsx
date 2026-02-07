@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
+import { useListFilter } from '@/hooks/useListFilter'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,7 +35,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Plus, Key, RefreshCw, Copy, Check, Eye, Trash2 } from 'lucide-react'
+import { Plus, Key, RefreshCw, Copy, Check, Eye, Trash2, Search, X, Calendar } from 'lucide-react'
 import { LicenseDeleteDialog } from '@/components/licenses/LicenseDeleteDialog'
 
 // Types for Keygen API responses
@@ -141,6 +142,18 @@ function formatExpiry(expiry: string | null): string {
   })
 }
 
+/**
+ * Formats a date string for display.
+ */
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 export default function LicensesPage() {
   const { accountId, adminToken, baseUrl } = useAuth()
   const queryClient = useQueryClient()
@@ -148,7 +161,7 @@ export default function LicensesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [createdLicenseKey, setCreatedLicenseKey] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [showDateFilters, setShowDateFilters] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean
     licenseId: string
@@ -160,6 +173,19 @@ export default function LicensesPage() {
     licenseKey: '',
     userName: '',
   })
+
+  // Use the list filter hook for search, status, and date range
+  const { filters, setFilter, resetFilters } = useListFilter({
+    defaultFilters: {
+      pageSize: 100,
+    },
+  })
+
+  // Policy filter state (separate from useListFilter since it's license-specific)
+  const [policyFilter, setPolicyFilter] = useState<string>('ALL')
+
+  // Date filter type: 'created' or 'expiry'
+  const [dateFilterType, setDateFilterType] = useState<'created' | 'expiry'>('created')
 
   // Form state
   const [formData, setFormData] = useState({
@@ -191,7 +217,7 @@ export default function LicensesPage() {
     enabled: !!accountId && !!adminToken,
   })
 
-  // Fetch users for the dropdown
+  // Fetch users for the dropdown and user email search
   const { data: usersData } = useQuery<UsersResponse>({
     queryKey: ['users'],
     queryFn: async () => {
@@ -213,20 +239,47 @@ export default function LicensesPage() {
     enabled: !!accountId && !!adminToken,
   })
 
-  // Fetch licenses
+  // Fetch licenses with filters
   const {
     data: licensesData,
     isLoading,
     error,
     refetch,
   } = useQuery<LicensesResponse>({
-    queryKey: ['licenses', statusFilter],
+    queryKey: ['licenses', filters.search, filters.status, policyFilter, filters.dateFrom, filters.dateTo, dateFilterType],
     queryFn: async () => {
-      let url = `${baseUrl}/accounts/${accountId}/licenses?limit=100`
-      if (statusFilter !== 'ALL') {
-        url += `&status=${statusFilter}`
+      const params = new URLSearchParams({
+        limit: filters.pageSize.toString(),
+      })
+
+      // Status filter
+      if (filters.status && filters.status !== 'ALL') {
+        params.set('status', filters.status)
       }
-      const response = await fetch(url, {
+
+      // Policy filter
+      if (policyFilter !== 'ALL') {
+        params.set('policy', policyFilter)
+      }
+
+      // Date range filters based on selected type
+      if (filters.dateFrom) {
+        if (dateFilterType === 'created') {
+          params.set('created[gte]', new Date(filters.dateFrom).toISOString())
+        } else {
+          params.set('expiry[gte]', new Date(filters.dateFrom).toISOString())
+        }
+      }
+
+      if (filters.dateTo) {
+        if (dateFilterType === 'created') {
+          params.set('created[lte]', new Date(filters.dateTo + 'T23:59:59').toISOString())
+        } else {
+          params.set('expiry[lte]', new Date(filters.dateTo + 'T23:59:59').toISOString())
+        }
+      }
+
+      const response = await fetch(`${baseUrl}/accounts/${accountId}/licenses?${params.toString()}`, {
         headers: {
           Authorization: `Bearer ${adminToken}`,
           Accept: 'application/vnd.api+json',
@@ -343,18 +396,28 @@ export default function LicensesPage() {
     resetForm()
   }
 
+  const handleResetFilters = () => {
+    resetFilters()
+    setPolicyFilter('ALL')
+    setDateFilterType('created')
+    setShowDateFilters(false)
+  }
+
   // Map policy IDs to names for display
   const policyMap = new Map(
     policiesData?.data?.map((p) => [p.id, p.attributes.name]) || []
   )
 
-  // Map user IDs to display names
+  // Map user IDs to display info
   const userMap = new Map(
     usersData?.data?.map((u) => [
       u.id,
-      u.attributes.firstName && u.attributes.lastName
-        ? `${u.attributes.firstName} ${u.attributes.lastName}`
-        : u.attributes.email,
+      {
+        displayName: u.attributes.firstName && u.attributes.lastName
+          ? `${u.attributes.firstName} ${u.attributes.lastName}`
+          : u.attributes.email,
+        email: u.attributes.email,
+      },
     ]) || []
   )
 
@@ -365,12 +428,32 @@ export default function LicensesPage() {
 
   const getUserName = (userId: string | null | undefined): string => {
     if (!userId) return '—'
-    return userMap.get(userId) || 'Unknown'
+    return userMap.get(userId)?.displayName || 'Unknown'
   }
 
-  const licenses = licensesData?.data || []
+  // Client-side filtering for search (license key and user email)
+  const allLicenses = licensesData?.data || []
+  const licenses = filters.search
+    ? allLicenses.filter((license) => {
+        const searchLower = filters.search.toLowerCase()
+        const keyMatch = license.attributes.key.toLowerCase().includes(searchLower)
+        const userId = license.relationships?.user?.data?.id
+        const userInfo = userId ? userMap.get(userId) : null
+        const emailMatch = userInfo?.email?.toLowerCase().includes(searchLower)
+        const nameMatch = license.attributes.name?.toLowerCase().includes(searchLower)
+        return keyMatch || emailMatch || nameMatch
+      })
+    : allLicenses
+
   const policies = policiesData?.data || []
   const users = usersData?.data || []
+
+  const hasActiveFilters =
+    filters.search ||
+    (filters.status && filters.status !== 'ALL') ||
+    policyFilter !== 'ALL' ||
+    filters.dateFrom ||
+    filters.dateTo
 
   return (
     <div className="space-y-6">
@@ -383,19 +466,6 @@ export default function LicensesPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Filter status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Statuses</SelectItem>
-              <SelectItem value="ACTIVE">Active</SelectItem>
-              <SelectItem value="INACTIVE">Inactive</SelectItem>
-              <SelectItem value="EXPIRED">Expired</SelectItem>
-              <SelectItem value="SUSPENDED">Suspended</SelectItem>
-              <SelectItem value="BANNED">Banned</SelectItem>
-            </SelectContent>
-          </Select>
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -555,6 +625,134 @@ export default function LicensesPage() {
         </div>
       )}
 
+      {/* Filters */}
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          {/* Search Input */}
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search key, email, or name..."
+              className="pl-8"
+              value={filters.search}
+              onChange={(e) => setFilter('search', e.target.value)}
+            />
+          </div>
+
+          {/* Filter Dropdowns */}
+          <div className="flex gap-2 flex-wrap items-center">
+            {/* Status Filter */}
+            <Select
+              value={filters.status || 'ALL'}
+              onValueChange={(val) => setFilter('status', val === 'ALL' ? '' : val)}
+            >
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Status</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="INACTIVE">Inactive</SelectItem>
+                <SelectItem value="EXPIRED">Expired</SelectItem>
+                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                <SelectItem value="BANNED">Banned</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Policy Filter */}
+            <Select value={policyFilter} onValueChange={setPolicyFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Policy" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Policies</SelectItem>
+                {policies.map((policy) => (
+                  <SelectItem key={policy.id} value={policy.id}>
+                    {policy.attributes.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Date Filter Toggle */}
+            <Button
+              variant={showDateFilters ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => setShowDateFilters(!showDateFilters)}
+              className="h-9"
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              Date Range
+            </Button>
+
+            {/* Reset Filters */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetFilters}
+                className="h-9 px-2 lg:px-3"
+              >
+                Reset
+                <X className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Date Range Filters (Collapsible) */}
+        {showDateFilters && (
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end rounded-lg border p-4 bg-muted/30">
+            <div className="grid gap-2">
+              <Label className="text-sm">Filter by</Label>
+              <Select
+                value={dateFilterType}
+                onValueChange={(val) => setDateFilterType(val as 'created' | 'expiry')}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created">Created Date</SelectItem>
+                  <SelectItem value="expiry">Expiry Date</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-sm">From</Label>
+              <Input
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => setFilter('dateFrom', e.target.value)}
+                className="w-[160px]"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-sm">To</Label>
+              <Input
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => setFilter('dateTo', e.target.value)}
+                className="w-[160px]"
+              />
+            </div>
+            {(filters.dateFrom || filters.dateTo) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFilter('dateFrom', '')
+                  setFilter('dateTo', '')
+                }}
+                className="h-9"
+              >
+                Clear Dates
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Error State */}
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
@@ -574,6 +772,7 @@ export default function LicensesPage() {
                 <TableHead>Expiry</TableHead>
                 <TableHead>Policy</TableHead>
                 <TableHead>User</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead className="w-[80px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -596,6 +795,9 @@ export default function LicensesPage() {
                     <Skeleton className="h-5 w-32" />
                   </TableCell>
                   <TableCell>
+                    <Skeleton className="h-5 w-24" />
+                  </TableCell>
+                  <TableCell>
                     <Skeleton className="h-8 w-8" />
                   </TableCell>
                 </TableRow>
@@ -609,18 +811,25 @@ export default function LicensesPage() {
       {!isLoading && !error && licenses.length === 0 && policies.length > 0 && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
           <Key className="h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">No licenses yet</h3>
+          <h3 className="mt-4 text-lg font-semibold">No licenses found</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            {statusFilter !== 'ALL'
-              ? `No licenses with status "${statusFilter}" found.`
+            {hasActiveFilters
+              ? 'No licenses match the selected filters.'
               : 'Create your first license to get started.'}
           </p>
-          {statusFilter === 'ALL' && (
-            <Button className="mt-4" onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create License
-            </Button>
-          )}
+          <div className="mt-4 flex gap-2">
+            {hasActiveFilters && (
+              <Button variant="outline" onClick={handleResetFilters}>
+                Clear Filters
+              </Button>
+            )}
+            {!hasActiveFilters && (
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create License
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
@@ -635,6 +844,7 @@ export default function LicensesPage() {
                 <TableHead>Expiry</TableHead>
                 <TableHead>Policy</TableHead>
                 <TableHead>User</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead className="w-[80px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -689,6 +899,9 @@ export default function LicensesPage() {
                       {getUserName(license.relationships?.user?.data?.id)}
                     </TableCell>
                     <TableCell>
+                      {formatDate(license.attributes.created)}
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
@@ -725,6 +938,14 @@ export default function LicensesPage() {
           </Table>
         </div>
       )}
+
+      {/* Results count when filters are active */}
+      {!isLoading && !error && hasActiveFilters && licenses.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Showing {licenses.length} license{licenses.length !== 1 ? 's' : ''}
+        </p>
+      )}
+
       {/* License Delete Dialog */}
       <LicenseDeleteDialog
         isOpen={deleteDialog.isOpen}

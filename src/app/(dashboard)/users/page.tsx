@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
+import { useListFilter } from '@/hooks/useListFilter'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,7 +45,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Plus, RefreshCw, Eye, Trash2, Users } from 'lucide-react'
+import { Plus, RefreshCw, Eye, Trash2, Users, Search, X } from 'lucide-react'
 
 /**
  * User interface matching Keygen API response structure.
@@ -134,8 +135,15 @@ export default function UsersPage() {
   const router = useRouter()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
+
+  const { filters, setFilter, resetFilters } = useListFilter({
+    defaultFilters: {
+      pageSize: 100,
+    }
+  })
+
+  // Role filter state
   const [roleFilter, setRoleFilter] = useState<string>('ALL')
-  const [statusFilter, setStatusFilter] = useState<string>('ALL')
 
   // Form state for creating a new user
   const [formData, setFormData] = useState({
@@ -146,23 +154,32 @@ export default function UsersPage() {
     password: '',
   })
 
-  // Fetch users with optional filters
+  // Fetch users with filters
   const {
     data: usersData,
     isLoading,
     error,
     refetch,
   } = useQuery<UsersResponse>({
-    queryKey: ['users', roleFilter, statusFilter],
+    queryKey: ['users', filters.search, filters.status, roleFilter],
     queryFn: async () => {
-      let url = `${baseUrl}/accounts/${accountId}/users?limit=100`
+      const params = new URLSearchParams({
+        limit: filters.pageSize.toString(),
+      })
+
+      if (filters.search) {
+        params.set('query', filters.search)
+      }
+
+      if (filters.status && filters.status !== 'ALL') {
+        params.set('status', filters.status)
+      }
+
       if (roleFilter !== 'ALL') {
-        url += `&role=${roleFilter}`
+        params.set('role', roleFilter)
       }
-      if (statusFilter !== 'ALL') {
-        url += `&status=${statusFilter}`
-      }
-      const response = await fetch(url, {
+
+      const response = await fetch(`${baseUrl}/accounts/${accountId}/users?${params.toString()}`, {
         headers: {
           Authorization: `Bearer ${adminToken}`,
           Accept: 'application/vnd.api+json',
@@ -297,7 +314,13 @@ export default function UsersPage() {
     resetForm()
   }
 
+  const handleResetFilters = () => {
+    resetFilters()
+    setRoleFilter('ALL')
+  }
+
   const users = usersData?.data || []
+  const hasActiveFilters = filters.search || (filters.status && filters.status !== 'ALL') || roleFilter !== 'ALL'
 
   return (
     <div className="space-y-6">
@@ -310,31 +333,6 @@ export default function UsersPage() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Status</SelectItem>
-              <SelectItem value="ACTIVE">Active</SelectItem>
-              <SelectItem value="INACTIVE">Inactive</SelectItem>
-              <SelectItem value="BANNED">Banned</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Roles</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="developer">Developer</SelectItem>
-              <SelectItem value="read-only">Read Only</SelectItem>
-              <SelectItem value="sales-agent">Sales Agent</SelectItem>
-              <SelectItem value="support-agent">Support Agent</SelectItem>
-              <SelectItem value="user">User</SelectItem>
-            </SelectContent>
-          </Select>
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -452,6 +450,60 @@ export default function UsersPage() {
         </div>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search email or name..."
+            className="pl-8"
+            value={filters.search}
+            onChange={(e) => setFilter('search', e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2 flex-wrap items-center">
+          <Select 
+            value={filters.status || 'ALL'} 
+            onValueChange={(val) => setFilter('status', val === 'ALL' ? '' : val)}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Status</SelectItem>
+              <SelectItem value="ACTIVE">Active</SelectItem>
+              <SelectItem value="INACTIVE">Inactive</SelectItem>
+              <SelectItem value="BANNED">Banned</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Roles</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="developer">Developer</SelectItem>
+              <SelectItem value="read-only">Read Only</SelectItem>
+              <SelectItem value="sales-agent">Sales Agent</SelectItem>
+              <SelectItem value="support-agent">Support Agent</SelectItem>
+              <SelectItem value="user">User</SelectItem>
+            </SelectContent>
+          </Select>
+          {hasActiveFilters && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleResetFilters}
+              className="h-9 px-2 lg:px-3"
+            >
+              Reset
+              <X className="ml-2 h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* Error State */}
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
@@ -508,16 +560,21 @@ export default function UsersPage() {
           <Users className="h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-semibold">No users found</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            {roleFilter !== 'ALL' || statusFilter !== 'ALL'
+            {hasActiveFilters
               ? 'No users match the selected filters.'
               : 'Create your first user to get started.'}
           </p>
-          {roleFilter === 'ALL' && statusFilter === 'ALL' && (
-            <Button className="mt-4" onClick={() => setIsCreateDialogOpen(true)}>
+          <div className="mt-4 flex gap-2">
+            {hasActiveFilters && (
+              <Button variant="outline" onClick={handleResetFilters}>
+                Clear Filters
+              </Button>
+            )}
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Create User
             </Button>
-          )}
+          </div>
         </div>
       )}
 

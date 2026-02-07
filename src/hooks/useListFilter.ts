@@ -7,6 +7,8 @@ import { useDebounce } from './useDebounce';
 export interface FilterState {
   search: string;
   status: string;
+  license: string;
+  platform: string;
   dateFrom: string;
   dateTo: string;
   page: number;
@@ -34,6 +36,8 @@ export function useListFilter(options: UseListFilterOptions = {}) {
       return {
         search: params.get('search') || defaultFilters?.search || '',
         status: params.get('status') || defaultFilters?.status || '',
+        license: params.get('license') || defaultFilters?.license || '',
+        platform: params.get('platform') || defaultFilters?.platform || '',
         dateFrom: params.get('dateFrom') || defaultFilters?.dateFrom || '',
         dateTo: params.get('dateTo') || defaultFilters?.dateTo || '',
         page: Number(params.get('page')) || defaultFilters?.page || 1,
@@ -56,6 +60,8 @@ export function useListFilter(options: UseListFilterOptions = {}) {
       if (
         prev.search === newFilters.search &&
         prev.status === newFilters.status &&
+        prev.license === newFilters.license &&
+        prev.platform === newFilters.platform &&
         prev.dateFrom === newFilters.dateFrom &&
         prev.dateTo === newFilters.dateTo &&
         prev.page === newFilters.page &&
@@ -75,6 +81,8 @@ export function useListFilter(options: UseListFilterOptions = {}) {
       const params = new URLSearchParams();
       if (searchVal) params.set('search', searchVal);
       if (state.status) params.set('status', state.status);
+      if (state.license) params.set('license', state.license);
+      if (state.platform) params.set('platform', state.platform);
       if (state.dateFrom) params.set('dateFrom', state.dateFrom);
       if (state.dateTo) params.set('dateTo', state.dateTo);
       if (state.page > 1) params.set('page', state.page.toString());
@@ -96,6 +104,8 @@ export function useListFilter(options: UseListFilterOptions = {}) {
   }, [
     debouncedSearch,
     filters.status,
+    filters.license,
+    filters.platform,
     filters.dateFrom,
     filters.dateTo,
     filters.page,
@@ -120,6 +130,8 @@ export function useListFilter(options: UseListFilterOptions = {}) {
     setFilters({
       search: defaultFilters?.search || '',
       status: defaultFilters?.status || '',
+      license: defaultFilters?.license || '',
+      platform: defaultFilters?.platform || '',
       dateFrom: defaultFilters?.dateFrom || '',
       dateTo: defaultFilters?.dateTo || '',
       page: 1,
@@ -132,6 +144,8 @@ export function useListFilter(options: UseListFilterOptions = {}) {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set('search', debouncedSearch);
     if (filters.status) params.set('status', filters.status);
+    if (filters.license) params.set('license', filters.license);
+    if (filters.platform) params.set('platform', filters.platform);
     if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
     if (filters.dateTo) params.set('dateTo', filters.dateTo);
     params.set('page', filters.page.toString());
