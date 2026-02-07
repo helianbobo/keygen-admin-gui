@@ -18,6 +18,7 @@ interface DeleteConfirmDialogProps {
   description?: ReactNode
   itemName?: string
   isLoading?: boolean
+  confirmDisabled?: boolean
 }
 
 export function DeleteConfirmDialog({
@@ -28,6 +29,7 @@ export function DeleteConfirmDialog({
   description,
   itemName,
   isLoading = false,
+  confirmDisabled = false,
 }: DeleteConfirmDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -63,7 +65,7 @@ export function DeleteConfirmDialog({
             type="button"
             variant="destructive"
             onClick={onConfirm}
-            disabled={isLoading}
+            disabled={isLoading || confirmDisabled}
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Delete
