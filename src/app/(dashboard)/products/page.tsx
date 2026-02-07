@@ -84,18 +84,18 @@ export default function ProductsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
 
+  // Search and filter
+  const { filters, setFilter, resetFilters } = useListFilter({
+    defaultFilters: { pageSize: 25 },
+    syncToUrl: true,
+  })
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
     code: '',
     distributionStrategy: 'LICENSED',
     platforms: [] as string[],
-  })
-
-  // Search and filter
-  const { filters, setFilter, resetFilters } = useListFilter({
-    defaultFilters: { pageSize: 25 },
-    syncToUrl: true,
   })
 
   // Fetch products
@@ -167,13 +167,6 @@ export default function ProductsPage() {
     },
   })
 
-  // Handle successful product deletion
-  const handleProductDeleted = () => {
-    queryClient.invalidateQueries({ queryKey: ['products'] })
-    setProductToDelete(null)
-    toast.success('Product deleted successfully')
-  }
-
   const resetForm = () => {
     setFormData({
       name: '',
@@ -202,6 +195,16 @@ export default function ProductsPage() {
   }
 
   const products = productsData?.data || []
+
+  // Filter products by search
+  const filteredProducts = products.filter((product) => {
+    if (!filters.search) return true
+    const searchLower = filters.search.toLowerCase()
+    return (
+      product.attributes.name.toLowerCase().includes(searchLower) ||
+      (product.attributes.code?.toLowerCase().includes(searchLower) ?? false)
+    )
+  })
 
   return (
     <div className="space-y-6">
@@ -301,31 +304,30 @@ export default function ProductsPage() {
                     <Label>Platforms</Label>
                     <div className="flex flex-wrap gap-2">
                       {PLATFORM_OPTIONS.map((platform) => (
-                        <Button
+                        <Badge
                           key={platform}
-                          type="button"
                           variant={
                             formData.platforms.includes(platform)
                               ? 'default'
                               : 'outline'
                           }
-                          size="sm"
+                          className="cursor-pointer"
                           onClick={() => togglePlatform(platform)}
                         >
                           {platform}
-                        </Button>
+                        </Badge>
                       ))}
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Click to select platforms (optional).
+                    </p>
                   </div>
                 </div>
                 <DialogFooter>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                      setIsCreateDialogOpen(false)
-                      resetForm()
-                    }}
+                    onClick={() => setIsCreateDialogOpen(false)}
                   >
                     Cancel
                   </Button>
@@ -386,22 +388,32 @@ export default function ProductsPage() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !error && products.length === 0 && (
+      {!isLoading && !error && filteredProducts.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
           <Package className="h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">No products yet</h3>
+          <h3 className="mt-4 text-lg font-semibold">
+            {filters.search ? 'No products found' : 'No products yet'}
+          </h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Create your first product to get started.
+            {filters.search
+              ? 'No products match your search.'
+              : 'Create your first product to get started.'}
           </p>
-          <Button className="mt-4" onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Product
-          </Button>
+          {filters.search ? (
+            <Button variant="link" onClick={resetFilters} className="mt-2">
+              Clear search
+            </Button>
+          ) : (
+            <Button className="mt-4" onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Product
+            </Button>
+          )}
         </div>
       )}
 
       {/* Products Table */}
-      {!isLoading && !error && products.length > 0 && (
+      {!isLoading && !error && filteredProducts.length > 0 && (
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
@@ -414,7 +426,7 @@ export default function ProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">
                     {product.attributes.name}
@@ -444,7 +456,11 @@ export default function ProductsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {product.attributes.distributionStrategy}
+                      {
+                        DISTRIBUTION_STRATEGIES.find(
+                          (s) => s.value === product.attributes.distributionStrategy
+                        )?.label || product.attributes.distributionStrategy
+                      }
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -469,7 +485,11 @@ export default function ProductsPage() {
         product={productToDelete}
         isOpen={!!productToDelete}
         onClose={() => setProductToDelete(null)}
-        onDeleted={handleProductDeleted}
+        onDeleted={() => {
+          queryClient.invalidateQueries({ queryKey: ['products'] })
+          setProductToDelete(null)
+          toast.success('Product deleted successfully')
+        }}
       />
     </div>
   )
