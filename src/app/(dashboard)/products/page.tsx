@@ -33,8 +33,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Plus, Trash2, Package, RefreshCw } from 'lucide-react'
+import { Plus, Trash2, Package, RefreshCw, Search, X } from 'lucide-react'
 import { ProductDeleteDialog } from '@/components/products/ProductDeleteDialog'
+import { useListFilter } from '@/hooks/useListFilter'
 
 // Types for Keygen API responses
 interface Product {
@@ -89,6 +90,12 @@ export default function ProductsPage() {
     code: '',
     distributionStrategy: 'LICENSED',
     platforms: [] as string[],
+  })
+
+  // Search and filter
+  const { filters, setFilter, resetFilters } = useListFilter({
+    defaultFilters: { pageSize: 25 },
+    syncToUrl: true,
   })
 
   // Fetch products
@@ -206,7 +213,23 @@ export default function ProductsPage() {
             Manage your Keygen products and their distribution settings.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search products..."
+              value={filters.search}
+              onChange={(e) => setFilter('search', e.target.value)}
+              className="pl-9 w-[200px]"
+            />
+          </div>
+          {/* Clear Filters */}
+          {filters.search && (
+            <Button variant="ghost" size="icon" onClick={resetFilters}>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>

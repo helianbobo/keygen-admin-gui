@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import { useListFilter } from '@/hooks/useListFilter'
 import {
   Table,
   TableBody,
@@ -22,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { RefreshCw, Monitor, Eye } from 'lucide-react'
+import { RefreshCw, Monitor, Eye, Search, X } from 'lucide-react'
 
 // Types for Keygen API responses
 interface License {
@@ -128,9 +129,12 @@ function formatHeartbeat(timestamp: string | null): string {
 export default function MachinesPage() {
   const { accountId, adminToken, baseUrl } = useAuth()
   const router = useRouter()
-  const [page, setPage] = useState(1)
-  const [pageSize] = useState(25)
-  const [platformFilter, setPlatformFilter] = useState<string>('ALL')
+  
+  // Use list filter hook for search and filtering
+  const { filters, setFilter, resetFilters, queryString } = useListFilter({
+    defaultFilters: { pageSize: 25 },
+    syncToUrl: true,
+  })
 
   // Fetch machines
   const {
@@ -139,12 +143,22 @@ export default function MachinesPage() {
     error,
     refetch,
   } = useQuery<MachinesResponse>({
-    queryKey: ['machines', page, pageSize, platformFilter],
+    queryKey: ['machines', filters.page, filters.pageSize, filters.platform, filters.license, filters.search, queryString],
     queryFn: async () => {
-      let url = `${baseUrl}/accounts/${accountId}/machines?page[size]=${pageSize}&page[number]=${page}`
-      if (platformFilter !== 'ALL') {
-        url += `&platform=${platformFilter}`
+      let url = `${baseUrl}/accounts/${accountId}/machines?page[size]=${filters.pageSize}&page[number]=${filters.page}`
+      
+      if (filters.platform && filters.platform !== 'ALL') {
+        url += `&platform=${filters.platform}`
       }
+      
+      if (filters.license && filters.license !== 'ALL') {
+        url += `&license=${filters.license}`
+      }
+      
+      if (filters.search) {
+        url += `&fingerprint=${filters.search}`
+      }
+
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${adminToken}`,
@@ -205,8 +219,24 @@ export default function MachinesPage() {
             View and manage activated machine devices.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Select value={platformFilter} onValueChange={(value) => { setPlatformFilter(value); setPage(1) }}>
+        <div className="flex flex-wrap gap-2">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search fingerprint..."
+              value={filters.search}
+              onChange={(e) => setFilter('search', e.target.value)}
+              className="pl-9 w-[200px]"
+            />
+          </div>
+          {/* Platform Filter */}
+          <Select 
+            value={filters.platform || 'ALL'} 
+            onValueChange={(value) => { 
+              setFilter('platform', value === 'ALL' ? '' : value)
+            }}
+          >
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Filter platform" />
             </SelectTrigger>
@@ -217,6 +247,31 @@ export default function MachinesPage() {
               <SelectItem value="Linux">Linux</SelectItem>
             </SelectContent>
           </Select>
+          {/* License Filter */}
+          <Select
+            value={filters.license || 'ALL'}
+            onValueChange={(value) => {
+              setFilter('license', value === 'ALL' ? '' : value)
+            }}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by license" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Licenses</SelectItem>
+              {licensesData?.data?.map((license) => (
+                <SelectItem key={license.id} value={license.id}>
+                  {truncateKey(license.attributes.key)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Clear Filters */}
+          {(filters.search || filters.platform || filters.license) && (
+            <Button variant="ghost" size="icon" onClick={resetFilters}>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -267,8 +322,8 @@ export default function MachinesPage() {
           <Monitor className="h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-semibold">No machines found</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            {platformFilter !== 'ALL'
-              ? `No machines with platform "${platformFilter}" found.`
+            {(filters.search || filters.platform || filters.license)
+              ? 'No machines match the selected filters.'
               : 'Machines are created when licenses are activated on devices.'}
           </p>
         </div>
@@ -365,22 +420,22 @@ export default function MachinesPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Page {page} of {totalPages}
+                Page {filters.page} of {totalPages}
               </p>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={filters.page <= 1}
+                  onClick={() => setFilter('page', Math.max(1, filters.page - 1))}
                 >
                   Previous
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
+                  disabled={filters.page >= totalPages}
+                  onClick={() => setFilter('page', filters.page + 1)}
                 >
                   Next
                 </Button>
