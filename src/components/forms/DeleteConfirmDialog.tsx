@@ -1,3 +1,4 @@
+import { ReactNode } from "react"
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ interface DeleteConfirmDialogProps {
   onClose: () => void
   onConfirm: () => void
   title?: string
-  description?: string
+  description?: ReactNode
   itemName?: string
   isLoading?: boolean
   confirmDisabled?: boolean

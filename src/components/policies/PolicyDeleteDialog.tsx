@@ -3,7 +3,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchResources } from '@/lib/api'
 import { DeleteConfirmDialog } from '@/components/forms/DeleteConfirmDialog'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle, Info } from 'lucide-react'
 
 interface PolicyDeleteDialogProps {
@@ -48,21 +47,25 @@ export function PolicyDeleteDialog({
           Checking for associated licenses...
         </div>
       ) : hasLicenses ? (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Action Blocked</AlertTitle>
-          <AlertDescription>
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-destructive">
+          <div className="flex items-center gap-2 font-semibold">
+            <AlertTriangle className="h-4 w-4" />
+            <span>Action Blocked</span>
+          </div>
+          <p className="mt-1 text-sm">
             This policy has <strong>{licenseCount}</strong> active license{licenseCount !== 1 ? 's' : ''}. 
             You must delete all associated licenses before this policy can be deleted.
-          </AlertDescription>
-        </Alert>
+          </p>
+        </div>
       ) : (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            No licenses are associated with this policy. It is safe to delete.
-          </AlertDescription>
-        </Alert>
+        <div className="rounded-lg border border-muted p-3 bg-muted/30">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Info className="h-4 w-4" />
+            <p className="text-sm">
+              No licenses are associated with this policy. It is safe to delete.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   )
