@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/components/auth-provider'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -34,6 +35,7 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const { logout } = useAuth()
 
   const currentPage = navigation.find((item) => pathname.startsWith(item.href))?.name || 'Dashboard'
 
@@ -92,7 +94,11 @@ export default function DashboardLayout({
 
           {/* Footer / User area */}
           <div className="p-4 border-t">
-            <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
+              onClick={logout}
+            >
               <LogOut className="w-4 h-4" />
               Logout
             </Button>
