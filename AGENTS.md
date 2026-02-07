@@ -21,6 +21,11 @@ A sleek, professional, and high-performance administrative dashboard for managin
 - **Users**: Total user base growth.
 - **Products**: Overview of managed software products.
 
+## Autonomy & Verification (Configured 2026-02-07)
+- **Autonomy Level**: Full (sub-agent → build pass → auto-merge)
+- **Visual Verification**: Skip (build only, manual verification by owner)
+- **Execution Order**: P1 (Task 3, 5) → P2 (Task 4, 6)
+
 ## Agent Instructions
 - Maintain a consistent design language across all pages.
 - Ensure responsive design for both desktop and tablet views.
