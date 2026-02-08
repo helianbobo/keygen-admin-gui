@@ -47,6 +47,7 @@ import { Plus, Trash2, ShieldCheck, RefreshCw, Search, X } from 'lucide-react'
 import { deleteResource } from '@/lib/api'
 import { PolicyDeleteDialog } from '@/components/policies/PolicyDeleteDialog'
 import { useListFilter } from '@/hooks/useListFilter'
+import Link from 'next/link'
 
 // Types for Keygen API responses
 interface Product {
@@ -592,7 +593,12 @@ export default function PoliciesPage() {
               {filteredPolicies.map((policy) => (
                 <TableRow key={policy.id}>
                   <TableCell className="font-medium">
-                    {policy.attributes.name}
+                    <Link
+                      href={`/policies/${policy.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {policy.attributes.name}
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">
