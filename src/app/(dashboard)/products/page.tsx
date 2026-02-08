@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
@@ -94,6 +95,7 @@ export default function ProductsPage() {
   const [formData, setFormData] = useState({
     name: '',
     code: '',
+    url: '',
     distributionStrategy: 'LICENSED',
     platforms: [] as string[],
   })
@@ -143,6 +145,7 @@ export default function ProductsPage() {
               attributes: {
                 name: data.name,
                 code: data.code || null,
+                url: data.url || null,
                 distributionStrategy: data.distributionStrategy,
                 platforms: data.platforms.length > 0 ? data.platforms : null,
               },
@@ -171,6 +174,7 @@ export default function ProductsPage() {
     setFormData({
       name: '',
       code: '',
+      url: '',
       distributionStrategy: 'LICENSED',
       platforms: [],
     })
@@ -275,6 +279,21 @@ export default function ProductsPage() {
                     />
                     <p className="text-xs text-muted-foreground">
                       A unique identifier for the product (optional).
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="url">URL</Label>
+                    <Input
+                      id="url"
+                      type="url"
+                      placeholder="https://example.com/product"
+                      value={formData.url}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, url: e.target.value }))
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Product website or download link (optional).
                     </p>
                   </div>
                   <div className="grid gap-2">
@@ -429,7 +448,12 @@ export default function ProductsPage() {
               {filteredProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">
-                    {product.attributes.name}
+                    <Link
+                      href={`/products/${product.id}`}
+                      className="hover:text-primary hover:underline transition-colors"
+                    >
+                      {product.attributes.name}
+                    </Link>
                   </TableCell>
                   <TableCell>
                     {product.attributes.code ? (
