@@ -13,7 +13,8 @@ import {
   Menu, 
   X, 
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Users2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -44,6 +45,7 @@ const navigation = [
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Policies', href: '/policies', icon: ShieldCheck },
   { name: 'Licenses', href: '/licenses', icon: Key },
+  { name: 'Groups', href: '/groups', icon: Users2 },
   { name: 'Users', href: '/users', icon: Users },
   { name: 'Machines', href: '/machines', icon: Laptop },
 ]
