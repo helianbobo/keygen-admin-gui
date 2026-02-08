@@ -161,6 +161,7 @@ export default function DashboardLayout({
           </div>
           
           <div className="flex items-center gap-4">
+            <ModeToggle />
             {/* User profile placeholder */}
             <div className="w-8 h-8 rounded-full bg-accent animate-pulse" />
           </div>
