@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { ModeToggle } from '@/components/mode-toggle'
 
 function truncateAccountId(accountId: string): string {
   if (accountId.length <= 14) return accountId
