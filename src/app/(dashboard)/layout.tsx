@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { ModeToggle } from '@/components/mode-toggle'
 
 function truncateAccountId(accountId: string): string {
   if (accountId.length <= 14) return accountId
@@ -161,6 +162,7 @@ export default function DashboardLayout({
           </div>
           
           <div className="flex items-center gap-4">
+            <ModeToggle />
             {/* User profile placeholder */}
             <div className="w-8 h-8 rounded-full bg-accent animate-pulse" />
           </div>
