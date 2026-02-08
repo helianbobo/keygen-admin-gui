@@ -8,6 +8,7 @@ import { useListFilter } from '@/hooks/useListFilter'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -152,6 +153,7 @@ export default function UsersPage() {
     lastName: '',
     role: 'user',
     password: '',
+    metadata: '',
   })
 
   // Fetch users with filters
@@ -205,7 +207,8 @@ export default function UsersPage() {
             firstName?: string
             lastName?: string
             role?: string
-            password?: string
+            password: string
+            metadata?: Record<string, unknown>
           }
         }
       } = {
@@ -213,6 +216,7 @@ export default function UsersPage() {
           type: 'users',
           attributes: {
             email: data.email,
+            password: data.password,
           },
         },
       }
@@ -227,8 +231,12 @@ export default function UsersPage() {
       if (data.role && data.role !== 'user') {
         payload.data.attributes.role = data.role
       }
-      if (data.password) {
-        payload.data.attributes.password = data.password
+      if (data.metadata.trim()) {
+        try {
+          payload.data.attributes.metadata = JSON.parse(data.metadata)
+        } catch {
+          throw new Error('Invalid JSON in metadata field')
+        }
       }
 
       const response = await fetch(
@@ -297,15 +305,44 @@ export default function UsersPage() {
       lastName: '',
       role: 'user',
       password: '',
+      metadata: '',
     })
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Email validation
     if (!formData.email) {
       toast.error('Email is required')
       return
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Please enter a valid email address')
+      return
+    }
+    
+    // Password validation (required, min 8 chars)
+    if (!formData.password) {
+      toast.error('Password is required')
+      return
+    }
+    if (formData.password.length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+    
+    // Metadata JSON validation (if provided)
+    if (formData.metadata.trim()) {
+      try {
+        JSON.parse(formData.metadata)
+      } catch {
+        toast.error('Metadata must be valid JSON')
+        return
+      }
+    }
+    
     createUser.mutate(formData)
   }
 
@@ -417,18 +454,35 @@ export default function UsersPage() {
                     </p>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="password">Password (Optional)</Label>
+                    <Label htmlFor="password">Password *</Label>
                     <Input
                       id="password"
                       type="password"
-                      placeholder="Leave empty for no password"
+                      placeholder="Enter password (min. 8 characters)"
                       value={formData.password}
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, password: e.target.value }))
                       }
+                      required
                     />
                     <p className="text-xs text-muted-foreground">
-                      If not set, the user won&apos;t be able to log in with a password.
+                      Minimum 8 characters required.
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="metadata">Metadata (Optional)</Label>
+                    <Textarea
+                      id="metadata"
+                      placeholder='{"key": "value"}'
+                      value={formData.metadata}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, metadata: e.target.value }))
+                      }
+                      className="font-mono text-sm"
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Optional JSON object for custom user attributes.
                     </p>
                   </div>
                 </div>
